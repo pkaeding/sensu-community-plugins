@@ -154,7 +154,6 @@ class HAProxyMetrics < Sensu::Plugin::Metric::CLI::Graphite
         output "#{config[:scheme]}.#{line[0]}.bytes_in", line[8]
         output "#{config[:scheme]}.#{line[0]}.bytes_out", line[9]
         output "#{config[:scheme]}.#{line[0]}.connection_errors", line[13]
-        output "#{config[:scheme]}.#{line[0]}.check_fail", line[21]
         output "#{config[:scheme]}.#{line[0]}.check_down", line[22]
         output "#{config[:scheme]}.#{line[0]}.warning_retries", line[15]
         output "#{config[:scheme]}.#{line[0]}.warning_redispatched", line[16]
@@ -172,6 +171,7 @@ class HAProxyMetrics < Sensu::Plugin::Metric::CLI::Graphite
         output "#{config[:scheme]}.#{line[0]}.average_time", line[61]
       elsif config[:server_metrics]
         output "#{config[:scheme]}.#{line[0]}.#{line[1]}.session_total", line[7]
+        output "#{config[:scheme]}.#{line[0]}.check_fail", line[21]
       end
 
     end
