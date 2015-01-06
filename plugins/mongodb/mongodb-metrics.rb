@@ -40,7 +40,7 @@ class MongoDB < Sensu::Plugin::Metric::CLI::Graphite
   option :port,
          description: 'MongoDB port',
          long: '--port PORT',
-         default: 27_017
+         default: 27017
 
   option :user,
          description: 'MongoDB user',
