@@ -40,7 +40,7 @@ class MongoDB < Sensu::Plugin::Metric::CLI::Graphite
   option :port,
          description: 'MongoDB port',
          long: '--port PORT',
-         default: 27_017
+         default: 27017
 
   option :user,
          description: 'MongoDB user',
@@ -73,7 +73,7 @@ class MongoDB < Sensu::Plugin::Metric::CLI::Graphite
     begin
       metrics = {}
       _result = @db.command(@is_master)['ok'] == 1
-      server_status = @db.command('server_status' => 1)
+      server_status = @db.command('serverStatus' => 1)
       if server_status['ok'] == 1
         metrics.update(gather_replication_metrics(server_status))
         timestamp = Time.now.to_i
