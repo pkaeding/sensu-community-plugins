@@ -42,6 +42,10 @@ class Slack < Sensu::Handler
     get_setting('surround')
   end
 
+  def markdown_enabled
+    get_setting('markdown_enabled') || true
+  end
+
   def incident_key
     @event['client']['name'] + '/' + @event['check']['name']
   end
@@ -51,13 +55,13 @@ class Slack < Sensu::Handler
   end
 
   def handle
-    description = @event['notification'] || build_description
-    post_data("#{incident_key}: #{description}")
+    description = @event['check']['notification'] || build_description
+    post_data("*Check*\n#{incident_key}\n\n*Description*\n#{description}")
   end
 
   def build_description
     [
-      @event['check']['output'],
+      @event['check']['output'].strip,
       @event['client']['address'],
       @event['client']['subscriptions'].join(',')
     ].join(' : ')
@@ -70,7 +74,7 @@ class Slack < Sensu::Handler
 
     req = Net::HTTP::Post.new("#{uri.path}?#{uri.query}")
     text = slack_surround ? slack_surround + notice + slack_surround : notice
-    req.body = "payload=#{payload(text).to_json}"
+    req.body = payload(text).to_json
 
     response = http.request(req)
     verify_response(response)
@@ -95,6 +99,7 @@ class Slack < Sensu::Handler
     }.tap do |payload|
       payload[:channel] = slack_channel if slack_channel
       payload[:username] = slack_bot_name if slack_bot_name
+      payload[:attachments][0][:mrkdwn_in] = %w(text) if markdown_enabled
     end
   end
 
