@@ -61,8 +61,8 @@ class CheckSupervisor < Sensu::Plugin::Check::CLI
 
     begin
       @super = RubySupervisor::Client.new(config[:host], config[:port])
-    rescue
-      critical "Tried to access #{config[:host]} but failed"
+    rescue => e
+      critical "Tried to access #{config[:host]} but failed with #{e}: #{e.message}"
     end
 
     @super.processes.each do |process|
