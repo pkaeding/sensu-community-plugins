@@ -54,7 +54,7 @@ class BeanstalkdMetrics < Sensu::Plugin::Metric::CLI::Graphite
 
   def acquire_beanstalkd_connection
     begin
-      conn = Beaneater::Pool.new(["#{config[:server]}:#{config[:port]}"])
+      conn = Beaneater.new("#{config[:server]}:#{config[:port]}")
     rescue
       warning 'could not connect to beanstalkd'
     end
