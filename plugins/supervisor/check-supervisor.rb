@@ -53,17 +53,27 @@ class CheckSupervisor < Sensu::Plugin::Check::CLI
          short: '-h',
          long: '--help'
 
+  def connect(should_retry)
+    begin
+      @super = RubySupervisor::Client.new(config[:host], config[:port])
+    rescue Timeout::Error => e
+      if should_retry
+        connect(false)
+      else
+        critical "Tried to access #{config[:host]} but failed with #{e}: #{e.message}"  
+      end
+    rescue => e
+      critical "Tried to access #{config[:host]} but failed with #{e}: #{e.message}"
+    end
+  end
+
   def run
     if config[:help]
       puts opt_parser
       exit
     end
 
-    begin
-      @super = RubySupervisor::Client.new(config[:host], config[:port])
-    rescue => e
-      critical "Tried to access #{config[:host]} but failed with #{e}: #{e.message}"
-    end
+    connect(true)
 
     @super.processes.each do |process|
       critical "#{process['name']} not running: #{process['statename'].downcase}" if config[:critical].include?(process['statename'])
