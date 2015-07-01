@@ -34,7 +34,7 @@ class VMStat < Sensu::Plugin::Metric::CLI::Graphite
   option :scheme,
          description: 'Metric naming scheme, text to prepend to .$parent.$child',
          long: '--scheme SCHEME',
-         default: "#{Socket.gethostname}.vmstat"
+         default: "#{Socket.gethostname}.openfiles"
 
   def convert_integers(values)
     values.each_with_index do |value, index|
@@ -52,12 +52,14 @@ class VMStat < Sensu::Plugin::Metric::CLI::Graphite
     result = convert_integers(`cat /proc/sys/fs/file-nr`.split(' '))
     timestamp = Time.now.to_i
     metrics = {
-      openfiles: {
+      counts: {
         allocated: result[0],
         used: result[1],
         max: result[2],
-        allocated_pct: result[0] / result[2],
-        used_pct: result[1] / result[2]
+      },
+      percentages: {
+        allocated: result[0] / result[2],
+        used: result[1] / result[2]
       }
     }
     metrics.each do |parent, children|
