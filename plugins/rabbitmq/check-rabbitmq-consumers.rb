@@ -1,18 +1,31 @@
 #!/usr/bin/env ruby
+#  encoding: UTF-8
 #
 # Check RabbitMQ consumers
-# ========================
+# ===
 #
+# DESCRIPTION:
+# This plugin checks the number of consumers on the RabbitMQ server
+#
+# PLATFORMS:
+#   Linux, BSD, Solaris
+#
+# DEPENDENCIES:
+#   RabbitMQ rabbitmq_management plugin
+#   gem: sensu-plugin
+#   gem: carrot-top
+#
+# LICENSE:
 # Copyright 2014 Daniel Kerwin <d.kerwin@gini.net>
 # Copyright 2014 Tim Smith <tim@cozy.co>
 #
 # Released under the same terms as Sensu (the MIT license); see LICENSE
 # for details.
 
-require 'rubygems' if RUBY_VERSION < '1.9.0'
 require 'sensu-plugin/check/cli'
 require 'carrot-top'
 
+# main plugin class
 class CheckRabbitMQConsumers < Sensu::Plugin::Check::CLI
   option :host,
          description: 'RabbitMQ management API host',
@@ -42,9 +55,13 @@ class CheckRabbitMQConsumers < Sensu::Plugin::Check::CLI
          default: 'guest'
 
   option :queue,
-         description: 'RabbitMQ queue to monitor. To check 2+ queues use a comma separated list',
+         description: 'Comma separated list of RabbitMQ queues to monitor.',
          long: '--queue queue_name',
-         required: true,
+         proc: proc { |q| q.split(',') }
+
+  option :exclude,
+         description: 'Comma separated list of RabbitMQ queues to NOT monitor.  All others will be monitored.',
+         long: '--exclude queue_name',
          proc: proc { |q| q.split(',') }
 
   option :warn,
@@ -91,16 +108,22 @@ class CheckRabbitMQConsumers < Sensu::Plugin::Check::CLI
 
   def run
     # create arrays to hold failures
-    missing = config[:queue]
+    missing = config[:queue] || []
     critical = []
     warn = []
 
     rabbit.queues.each do |queue|
-      next unless config[:queue].include?(queue['name'])
+      # if specific queues were passed only monitor those.
+      # if specific queues to exclude were passed then skip those
+      if config[:queue]
+        next unless config[:queue].include?(queue['name'])
+      elsif config[:exclude]
+        next if config[:exclude].include?(queue['name'])
+      end
       missing.delete(queue['name'])
       consumers = queue['consumers']
-      critical.push(queue['name']) if consumers < config[:critical]
-      warn.push(queue['name']) if consumers < config[:warn]
+      critical.push(queue['name']) if consumers <= config[:critical]
+      warn.push(queue['name']) if consumers <= config[:warn]
     end
 
     return_condition(missing, critical, warn)

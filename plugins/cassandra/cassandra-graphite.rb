@@ -93,6 +93,21 @@ class CassandraMetrics < Sensu::Plugin::Metric::CLI::Graphite
          description: 'cassandra JMX port',
          default: '7199'
 
+  option :username,
+         short: '-u USERNAME',
+         long: '--username USERNAME',
+         description: 'cassandra JMX username'
+
+  option :password,
+         short: '-p PASSWORD',
+         long: '--password PASSWORD',
+         description: 'cassandra JMX password'
+
+  option :passwordfile,
+         short: '-F PASSWORD-FILE',
+         long: '--password-file PASSWORD-FILE',
+         description: 'cassandra JMX password file'
+
   option :scheme,
          description: 'Metric naming scheme, text to prepend to metric',
          short: '-s SCHEME',
@@ -145,7 +160,15 @@ class CassandraMetrics < Sensu::Plugin::Metric::CLI::Graphite
 
   # execute cassandra's nodetool and return output as string
   def nodetool_cmd(cmd)
-    `nodetool -h #{config[:hostname]} -p #{config[:port]} #{cmd}`
+    if config[:username]
+      if config[:passwordfile]
+        `nodetool -h #{config[:hostname]} -u #{config[:username]} -pwf #{config[:passwordfile]} -p #{config[:port]} #{cmd}`
+      elsif config[:password]
+        `nodetool -h #{config[:hostname]} -u #{config[:username]} -pw #{config[:password]} -p #{config[:port]} #{cmd}`
+      end
+    else
+      `nodetool -h #{config[:hostname]} -p #{config[:port]} #{cmd}`
+    end
   end
 
   # nodetool -h localhost info:
@@ -285,6 +308,9 @@ class CassandraMetrics < Sensu::Plugin::Metric::CLI::Graphite
   end
 
   # nodetool -h localhost cfstats
+  #
+  # Pre v 2.0
+  #
   # Keyspace: system
   #   Read Count: 216
   #   Read Latency: 1.4066805555555557 ms.
@@ -315,9 +341,40 @@ class CassandraMetrics < Sensu::Plugin::Metric::CLI::Graphite
   #     Compacted row maximum size: 0
   #     Compacted row mean size: 0
   #
+  # Post v 2.0
+  #
+  # Keyspace: system
+  #         Read Count: 1806
+  #         Read Latency: 0.47397231450719823 ms.
+  #         Write Count: 77488
+  #         Write Latency: 0.03966830993186042 ms.
+  #         Pending Tasks: 0
+  #                 Table: IndexInfo
+  #                 SSTable count: 0
+  #                 Space used (live), bytes: 0
+  #                 Space used (total), bytes: 0
+  #                 SSTable Compression Ratio: 0.0
+  #                 Number of keys (estimate): 0
+  #                 Memtable cell count: 0
+  #                 Memtable data size, bytes: 0
+  #                 Memtable switch count: 0
+  #                 Local read count: 0
+  #                 Local read latency: 0.000 ms
+  #                 Local write count: 0
+  #                 Local write latency: 0.000 ms
+  #                 Pending tasks: 0
+  #                 Bloom filter false positives: 0
+  #                 Bloom filter false ratio: 0.00000
+  #                 Bloom filter space used, bytes: 0
+  #                 Compacted partition minimum bytes: 0
+  #                 Compacted partition maximum bytes: 0
+  #                 Compacted partition mean bytes: 0
+  #                 Average live cells per slice (last five minutes): 0.0
+  #                 Average tombstones per slice (last five minutes): 0.0
+  #
   # some notes on parsing cfstats output:
-  # - a line preceeded by 1 tab contains keyspace metrics
-  # - a line preceeded by 2 tabs contains column family metrics
+  # - a line preceded by 1 tab contains keyspace metrics
+  # - a line preceded by 2 tabs contains column family metrics
   def parse_cfstats
     def get_metric(string)
       string.strip!
@@ -331,7 +388,7 @@ class CassandraMetrics < Sensu::Plugin::Metric::CLI::Graphite
         metric.gsub!(/[_]{2,}/, '_')       # convert sequence of multiple _'s to single _
         metric.downcase!
         # sanitize metric values for graphite. Numbers only, please.
-        value = value.chomp(' ms.').gsub(/([0-9.]+)$/, '\1')
+        value = value.gsub(/([0-9.]+) \w.*$/, '\1')
       end
       [metric, value]
     end
@@ -345,8 +402,8 @@ class CassandraMetrics < Sensu::Plugin::Metric::CLI::Graphite
       num_indents = line.count("\t")
       if m = line.match(/^Keyspace:\s+(\w+)$/)
         keyspace = m[1]
-      elsif m = line.match(/\t\tColumn Family[^:]*:\s+(\w+)$/)
-        cf = m[1]
+      elsif m = line.match(/\t\t(Column Family|Table)[^:]*:\s+(\w+)$/)
+        cf = m[2]
       elsif num_indents == 0
         # keyspace = nil
         cf = nil
