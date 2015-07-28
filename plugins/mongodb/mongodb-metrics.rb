@@ -32,6 +32,8 @@ require 'sensu-plugin/metric/cli'
 require 'mongo'
 include Mongo
 
+Mongo::Logger.logger.level = Logger::WARN
+
 class MongoDB < Sensu::Plugin::Metric::CLI::Graphite
   option :host,
          description: 'MongoDB host',
@@ -142,16 +144,6 @@ class MongoDB < Sensu::Plugin::Metric::CLI::Graphite
 
     server_metrics['connections.current'] = server_status['connections']['current']
     server_metrics['connections.available'] = server_status['connections']['available']
-
-    if server_status['indexCounters']['btree'].nil?
-      server_metrics['indexes.missRatio'] = "#{sprintf('%.5f', server_status['indexCounters']['missRatio'])}"
-      server_metrics['indexes.hits'] = server_status['indexCounters']['hits']
-      server_metrics['indexes.misses'] = server_status['indexCounters']['misses']
-    else
-      server_metrics['indexes.missRatio'] = "#{sprintf('%.5f', server_status['indexCounters']['btree']['missRatio'])}"
-      server_metrics['indexes.hits'] = server_status['indexCounters']['btree']['hits']
-      server_metrics['indexes.misses'] = server_status['indexCounters']['btree']['misses']
-    end
 
     server_metrics['cursors.open'] = server_status['cursors']['totalOpen']
     server_metrics['cursors.timedOut'] = server_status['cursors']['timedOut']
