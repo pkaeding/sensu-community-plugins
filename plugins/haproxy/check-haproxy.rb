@@ -117,8 +117,8 @@ class CheckHAProxy < Sensu::Plugin::Check::CLI
     else
       percent_up = 100 * services.select { |svc| svc[:status] == 'UP' || svc[:status] == 'OPEN' }.size / services.size
       failed_names = services.reject { |svc| svc[:status] == 'UP' || svc[:status] == 'OPEN' }.map { |svc| svc[:svname] }
-      critical_sessions = services.select { |svc| svc[:slim].to_i > 0 && (100 * svc[:scur].to_f / svc[:slim].to_f) > config[:session_crit_percent] }
-      warning_sessions = services.select { |svc| svc[:slim].to_i > 0 && (100 * svc[:scur].to_f / svc[:slim].to_f) > config[:session_warn_percent] }
+      critical_sessions = services.select { |svc| svc[:svname] != 'BACKEND' && svc[:slim].to_i > 0 && (100 * svc[:scur].to_f / svc[:slim].to_f) > config[:session_crit_percent] }
+      warning_sessions = services.select { |svc| svc[:svname] != 'BACKEND' && svc[:slim].to_i > 0 && (100 * svc[:scur].to_f / svc[:slim].to_f) > config[:session_warn_percent] }
 
       status = "UP: #{percent_up}% of #{services.size} /#{config[:service]}/ services" + (failed_names.empty? ? '' : ", DOWN: #{failed_names.join(', ')}")
       if percent_up < config[:crit_percent]
