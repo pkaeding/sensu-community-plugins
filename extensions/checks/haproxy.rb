@@ -85,8 +85,8 @@ module Sensu
         else
           percent_up = 100 * services.select { |svc| svc[:status] == 'UP' || svc[:status] == 'OPEN' }.size / services.size
           failed_names = services.reject { |svc| svc[:status] == 'UP' || svc[:status] == 'OPEN' }.map { |svc| svc[:svname] }
-          critical_sessions = services.select { |svc| svc[:slim].to_i > 0 && (100 * svc[:scur].to_f / svc[:slim].to_f) > options[:session_crit_percent] }
-          warning_sessions = services.select { |svc| svc[:slim].to_i > 0 && (100 * svc[:scur].to_f / svc[:slim].to_f) > options[:session_warn_percent] }
+          critical_sessions = services.select { |svc| svc[:svname] != 'BACKEND' && svc[:slim].to_i > 0 && (100 * svc[:scur].to_f / svc[:slim].to_f) > options[:session_crit_percent] }
+          warning_sessions = services.select { |svc| svc[:svname] != 'BACKEND' && svc[:slim].to_i > 0 && (100 * svc[:scur].to_f / svc[:slim].to_f) > options[:session_warn_percent] }
 
           status = "#{100 - percent_up}% of #{services.size} of #{options[:service]} are DOWN; "\
             + (failed_names.empty? ? '' : " NODES: #{failed_names.join(', ')}")
